@@ -22,26 +22,54 @@
         async function fetchMidi() {
             const scoreUrl = document.getElementById('scoreUrl').value;
             const resultDiv = document.getElementById('result');
+            const submitBtn = document.querySelector('button[onclick="fetchMidi()"]');
 
             if (!scoreUrl) {
                 resultDiv.innerText = "Please paste a MuseScore URL first.";
                 return;
             }
             
-            resultDiv.innerText = "🔍 Searching network logs... please wait.";
+            resultDiv.innerText = "Searching for downloadable MIDI... please wait.";
+            if (submitBtn) submitBtn.disabled = true;
 
             try {
                 const apiBase = window.MIDI_API_BASE || "";
-                const response = await fetch(`${apiBase}/api/get-midi?scoreUrl=${encodeURIComponent(scoreUrl)}`);
-                const data = await response.json();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 70000);
+
+                const response = await fetch(`${apiBase}/api/get-midi?scoreUrl=${encodeURIComponent(scoreUrl)}`, {
+                    signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+
+                const contentType = response.headers.get("content-type") || "";
+                let data;
+                if (contentType.includes("application/json")) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    data = { error: text || "Server returned a non-JSON response." };
+                }
+
+                if (!response.ok) {
+                    resultDiv.innerText = "❌ Error: " + (data.error || `Request failed (${response.status})`);
+                    return;
+                }
 
                 if (data.midiUrl) {
-                    resultDiv.innerHTML = `<a href="${data.midiUrl}" target="_blank" download="score.mid">✅ Download MIDI File</a>`;
+                    const href = data.downloadUrl || data.midiUrl;
+                    resultDiv.innerHTML = `<a href="${href}" target="_blank" rel="noopener">Download MIDI File</a>`;
                 } else {
                     resultDiv.innerText = "❌ Error: " + (data.error || "Could not find MIDI.");
                 }
             } catch (err) {
-                resultDiv.innerText = "❌ Failed to connect to server.";
+                if (err.name === 'AbortError') {
+                    resultDiv.innerText = "❌ Request timed out. Please try again.";
+                } else {
+                    resultDiv.innerText = "❌ Failed to connect to server.";
+                }
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         }
     </script>
