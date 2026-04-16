@@ -22,12 +22,17 @@
         async function fetchMidi() {
             const scoreUrl = document.getElementById('scoreUrl').value;
             const resultDiv = document.getElementById('result');
+
+            if (!scoreUrl) {
+                resultDiv.innerText = "Please paste a MuseScore URL first.";
+                return;
+            }
             
             resultDiv.innerText = "🔍 Searching network logs... please wait.";
 
             try {
-                // REPLACE THIS with your actual Vercel URL once deployed
-                const response = await fetch(`https://musescore-scraper-pi.vercel.app/api/get-midi?scoreUrl=${encodeURIComponent(scoreUrl)}`);
+                const apiBase = window.MIDI_API_BASE || "";
+                const response = await fetch(`${apiBase}/api/get-midi?scoreUrl=${encodeURIComponent(scoreUrl)}`);
                 const data = await response.json();
 
                 if (data.midiUrl) {
