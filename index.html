@@ -1,24 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lv">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MuseScore MIDI Fetcher</title>
+    <title>MuseScore MIDI Lejuplade</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-a: #fdf6ec;
-            --bg-b: #dbefff;
-            --bg-c: #f6e8ff;
-            --card: rgba(255, 255, 255, 0.92);
-            --text: #1a2130;
-            --muted: #556277;
-            --line: #d8dfea;
-            --accent: #0b6ed0;
-            --accent-strong: #004fa6;
-            --ok: #0a7f42;
+            --bg-a: #fff8ea;
+            --bg-b: #e7f2ff;
+            --bg-c: #e8fff2;
+            --card: rgba(255, 255, 255, 0.93);
+            --text: #102134;
+            --muted: #4f6378;
+            --line: #d2dfed;
+            --accent: #005eb8;
+            --accent-strong: #00458a;
+            --warn-bg: #fff3e9;
+            --warn-line: #ffc994;
+            --warn-text: #8b3f00;
+            --ok: #0d7f49;
         }
 
         * {
@@ -38,6 +41,18 @@
             display: grid;
             place-items: center;
             padding: 28px 16px;
+            animation: fadeInBody 0.7s ease;
+        }
+
+        @keyframes fadeInBody {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .shell {
@@ -49,6 +64,18 @@
             box-shadow: 0 26px 70px rgba(10, 35, 70, 0.14);
             backdrop-filter: blur(8px);
             overflow: hidden;
+            animation: liftIn 0.8s ease;
+        }
+
+        @keyframes liftIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px) scale(0.985);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .band {
@@ -90,6 +117,18 @@
             color: #184a82;
             font-size: 14px;
             font-weight: 600;
+        }
+
+        .warning {
+            margin: 0 0 20px;
+            padding: 12px 14px;
+            border: 1px solid var(--warn-line);
+            border-radius: 12px;
+            background: var(--warn-bg);
+            color: var(--warn-text);
+            font-size: 14px;
+            line-height: 1.45;
+            font-weight: 700;
         }
 
         .row {
@@ -178,15 +217,16 @@
 </head>
 <body>
     <main class="shell">
-        <div class="band">MuseScore To MIDI</div>
+        <div class="band">MuseScore uz MIDI</div>
         <div class="content">
-            <h1>Turn MuseScore Links Into MIDI Downloads</h1>
-            <p class="sub">Paste any MuseScore score URL and this tool will find a downloadable MIDI file for you.</p>
-            <p class="callout">This can take up to 1 minute depending on score protection and network conditions.</p>
+            <h1>Pavers MuseScore saites par MIDI lejupieladi</h1>
+            <p class="sub">Ielime MuseScore notu URL, un sis riks meginas atrast tev lejupieladejamu MIDI failu.</p>
+            <p class="callout">Apstrade var aiznemt lidz 1 minutei, atkariba no lapas aizsardzibas un interneta atruma.</p>
+            <p class="warning">Lieto uz savu risku. Sada failu iegusana dazos gadijumos var but nelikumiga tava valsti vai parkapt platformas noteikumus.</p>
 
             <div class="row">
                 <input type="text" id="scoreUrl" placeholder="https://musescore.com/user/...">
-                <button onclick="fetchMidi()">Get MIDI</button>
+                <button onclick="fetchMidi()">Iegut MIDI</button>
             </div>
 
             <div id="result"></div>
@@ -204,11 +244,11 @@
 
             const renderProgress = () => {
                 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                resultDiv.innerText = `Searching for downloadable MIDI... please wait. (${elapsed}s)`;
+                resultDiv.innerText = `Mekleju lejupieladejamu MIDI... ludzu uzgaidi. (${elapsed}s)`;
             };
 
             if (!scoreUrl) {
-                resultDiv.innerText = "Please paste a MuseScore URL first.";
+                resultDiv.innerText = "Vispirms ielime MuseScore URL.";
                 return;
             }
             
@@ -237,7 +277,7 @@
 
                 if (!response.ok) {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = "❌ Error: " + (data.error || `Request failed (${response.status})`) + ` (${elapsed}s)`;
+                    resultDiv.innerText = "Kluda: " + (data.error || `Pieprasijums neizdevas (${response.status})`) + ` (${elapsed}s)`;
                     return;
                 }
 
@@ -246,19 +286,19 @@
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
                     const backendMs = data.meta?.totalMs;
                     const backendSec = typeof backendMs === "number" ? (backendMs / 1000).toFixed(1) : null;
-                    const timingText = backendSec ? `Client ${elapsed}s, API ${backendSec}s` : `Client ${elapsed}s`;
-                    resultDiv.innerHTML = `<a href="${href}" target="_blank" rel="noopener">Download MIDI File</a><div style="margin-top:8px;font-size:12px;color:#555;">${timingText}</div>`;
+                    const timingText = backendSec ? `Klients ${elapsed}s, API ${backendSec}s` : `Klients ${elapsed}s`;
+                    resultDiv.innerHTML = `<a href="${href}" target="_blank" rel="noopener">Lejupieladet MIDI failu</a><div style="margin-top:8px;font-size:12px;color:#555;">${timingText}</div>`;
                 } else {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = "❌ Error: " + (data.error || "Could not find MIDI.") + ` (${elapsed}s)`;
+                    resultDiv.innerText = "Kluda: " + (data.error || "Neizdevas atrast MIDI.") + ` (${elapsed}s)`;
                 }
             } catch (err) {
                 if (err.name === 'AbortError') {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = `❌ Request timed out. Please try again. (${elapsed}s)`;
+                    resultDiv.innerText = `Pieprasijumam iestajas noilgums. Megini velreiz. (${elapsed}s)`;
                 } else {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = `❌ Failed to connect to server. (${elapsed}s)`;
+                    resultDiv.innerText = `Neizdevas pieslegties serverim. (${elapsed}s)`;
                 }
             } finally {
                 if (timerId) clearInterval(timerId);
