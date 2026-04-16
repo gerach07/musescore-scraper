@@ -11,6 +11,19 @@ function isMidiLikeUrl(url) {
     return /(\.mid|\.midi)(\?|$)/i.test(url) || /\/midi\//i.test(url) || /type=midi/i.test(url);
 }
 
+function isAllowedMidiHost(url) {
+    try {
+        const host = new URL(url).hostname.toLowerCase();
+        return (
+            host === 'musescore.com' ||
+            host.endsWith('.musescore.com') ||
+            host.endsWith('.ustatik.com')
+        );
+    } catch (e) {
+        return false;
+    }
+}
+
 function collectMidiUrlsFromHtml(html) {
     const matches = html.match(/https?:\/\/[^"'\s<>]+/gi) || [];
     return matches
@@ -73,6 +86,12 @@ async function connectBrowser() {
         executablePath,
         headless: true,
     });
+}
+
+function getBrowserMode() {
+    return process.env.BROWSER_WS_ENDPOINT
+        ? `remote-${(process.env.BROWSER_WS_PROTOCOL || 'playwright').toLowerCase()}`
+        : 'local-chromium';
 }
 
 function extractFilenameFromUrl(url) {
@@ -142,6 +161,23 @@ module.exports = async function handler(req, res) {
 
     const scoreUrl = req.query?.scoreUrl;
     const shouldProxyDownload = req.query?.download === '1';
+    const directMidiUrl = req.query?.midiUrl;
+
+    if (shouldProxyDownload && directMidiUrl) {
+        if (!isMidiLikeUrl(directMidiUrl) || !isAllowedMidiHost(directMidiUrl)) {
+            return res.status(400).json({ error: 'Invalid midiUrl for download.' });
+        }
+
+        try {
+            return await streamMidiToClient(res, directMidiUrl);
+        } catch (error) {
+            return res.status(502).json({
+                error: 'Failed to fetch MIDI file from source URL.',
+                details: error.message,
+            });
+        }
+    }
+
     if (!scoreUrl) {
         return res.status(400).json({ error: 'Missing scoreUrl query parameter' });
     }
@@ -160,8 +196,11 @@ module.exports = async function handler(req, res) {
     }
 
     let browser;
+    const requestStartedAt = Date.now();
+    let browserReadyAt = null;
     try {
         browser = await connectBrowser();
+        browserReadyAt = Date.now();
 
         if (!browser) {
             return res.status(500).json({ error: 'Failed to initialize browser runtime.' });
@@ -239,17 +278,32 @@ module.exports = async function handler(req, res) {
             if (sawAntiBotChallenge) {
                 return res.status(403).json({
                     error: 'MuseScore anti-bot challenge blocked this request. Use a trusted remote browser via BROWSER_WS_ENDPOINT for public reliability.',
+                    meta: {
+                        browserMode: getBrowserMode(),
+                        totalMs: Date.now() - requestStartedAt,
+                        browserSetupMs: browserReadyAt ? browserReadyAt - requestStartedAt : null,
+                    },
                 });
             }
 
             if (timedOut) {
                 return res.status(504).json({
                     error: 'Request timed out while scanning score resources. Please try again.',
+                    meta: {
+                        browserMode: getBrowserMode(),
+                        totalMs: Date.now() - requestStartedAt,
+                        browserSetupMs: browserReadyAt ? browserReadyAt - requestStartedAt : null,
+                    },
                 });
             }
 
             return res.status(404).json({
                 error: 'Could not find a MIDI URL on this page. Some scores are protected by anti-bot pages or require interaction.',
+                meta: {
+                    browserMode: getBrowserMode(),
+                    totalMs: Date.now() - requestStartedAt,
+                    browserSetupMs: browserReadyAt ? browserReadyAt - requestStartedAt : null,
+                },
             });
         }
 
@@ -259,7 +313,12 @@ module.exports = async function handler(req, res) {
 
         return res.status(200).json({
             midiUrl,
-            downloadUrl: `/api/get-midi?scoreUrl=${encodeURIComponent(normalizedScoreUrl)}&download=1`,
+            downloadUrl: `/api/get-midi?download=1&midiUrl=${encodeURIComponent(midiUrl)}`,
+            meta: {
+                browserMode: getBrowserMode(),
+                totalMs: Date.now() - requestStartedAt,
+                browserSetupMs: browserReadyAt ? browserReadyAt - requestStartedAt : null,
+            },
         });
     } catch (error) {
         return res.status(500).json({
