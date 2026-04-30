@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MuseScore MIDI Lejuplade</title>
+    <title>MuseScore MIDI Lejupielāde</title>
+    <meta name="description" content="Pārveido MuseScore notu saiti par lejupielādējamu MIDI failu. Ātri un vienkārši.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -219,14 +220,14 @@
     <main class="shell">
         <div class="band">MuseScore uz MIDI</div>
         <div class="content">
-            <h1>Pavers MuseScore saites par MIDI lejupieladi</h1>
-            <p class="sub">Ielime MuseScore notu URL, un sis riks meginas atrast tev lejupieladejamu MIDI failu.</p>
-            <p class="callout">Apstrade var aiznemt lidz 1 minutei, atkariba no lapas aizsardzibas un interneta atruma.</p>
-            <p class="warning">Lieto uz savu risku. Sada failu iegusana dazos gadijumos var but nelikumiga tava valsti vai parkapt platformas noteikumus.</p>
+            <h1>Pārveido MuseScore saiti par MIDI lejupielādi</h1>
+            <p class="sub">Ielīmē MuseScore notu URL, un šis rīks mēģinās atrast tev lejupielādējamu MIDI failu.</p>
+            <p class="callout">Apstrāde var aizņemt līdz 1 minūtei, atkarībā no lapas aizsardzības un interneta ātruma.</p>
+            <p class="warning">Lieto uz savu risku. Šāda failu iegūšana dažos gadījumos var būt nelikumīga tavā valstī vai pārkāpt platformas noteikumus.</p>
 
             <div class="row">
-                <input type="text" id="scoreUrl" placeholder="https://musescore.com/user/...">
-                <button onclick="fetchMidi()">Iegut MIDI</button>
+                <input type="text" id="scoreUrl" placeholder="https://musescore.com/user/..." aria-label="MuseScore URL">
+                <button id="fetchBtn" onclick="fetchMidi()">Iegūt MIDI</button>
             </div>
 
             <div id="result"></div>
@@ -238,17 +239,17 @@
         async function fetchMidi() {
             const scoreUrl = document.getElementById('scoreUrl').value;
             const resultDiv = document.getElementById('result');
-            const submitBtn = document.querySelector('button[onclick="fetchMidi()"]');
+            const submitBtn = document.getElementById('fetchBtn');
             const startedAt = Date.now();
             let timerId = null;
 
             const renderProgress = () => {
                 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                resultDiv.innerText = `Mekleju lejupieladejamu MIDI... ludzu uzgaidi. (${elapsed}s)`;
+                resultDiv.innerText = `Meklēju lejupielādējamu MIDI... lūdzu uzgaidi. (${elapsed}s)`;
             };
 
             if (!scoreUrl) {
-                resultDiv.innerText = "Vispirms ielime MuseScore URL.";
+                resultDiv.innerText = "Vispirms ielīmē MuseScore URL.";
                 return;
             }
             
@@ -277,7 +278,7 @@
 
                 if (!response.ok) {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = "Kluda: " + (data.error || `Pieprasijums neizdevas (${response.status})`) + ` (${elapsed}s)`;
+                    resultDiv.innerText = "Kļūda: " + (data.error || `Pieprasījums neizdevās (${response.status})`) + ` (${elapsed}s)`;
                     return;
                 }
 
@@ -287,18 +288,18 @@
                     const backendMs = data.meta?.totalMs;
                     const backendSec = typeof backendMs === "number" ? (backendMs / 1000).toFixed(1) : null;
                     const timingText = backendSec ? `Klients ${elapsed}s, API ${backendSec}s` : `Klients ${elapsed}s`;
-                    resultDiv.innerHTML = `<a href="${href}" target="_blank" rel="noopener">Lejupieladet MIDI failu</a><div style="margin-top:8px;font-size:12px;color:#555;">${timingText}</div>`;
+                    resultDiv.innerHTML = `<a href="${href}" target="_blank" rel="noopener">Lejupielādēt MIDI failu</a><div style="margin-top:8px;font-size:12px;color:#555;">${timingText}</div>`;
                 } else {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = "Kluda: " + (data.error || "Neizdevas atrast MIDI.") + ` (${elapsed}s)`;
+                    resultDiv.innerText = "Kļūda: " + (data.error || "Neizdevās atrast MIDI.") + ` (${elapsed}s)`;
                 }
             } catch (err) {
                 if (err.name === 'AbortError') {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = `Pieprasijumam iestajas noilgums. Megini velreiz. (${elapsed}s)`;
+                    resultDiv.innerText = `Pieprasījumam iestājās noilgums. Mēģini vēlreiz. (${elapsed}s)`;
                 } else {
                     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-                    resultDiv.innerText = `Neizdevas pieslegties serverim. (${elapsed}s)`;
+                    resultDiv.innerText = `Neizdevās pieslēgties serverim. (${elapsed}s)`;
                 }
             } finally {
                 if (timerId) clearInterval(timerId);

@@ -115,7 +115,7 @@ async function streamMidiToClient(res, midiUrl) {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch MIDI file (${response.status})`);
+        throw new Error(`Neizdevās iegūt MIDI failu (${response.status})`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -156,7 +156,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Metode nav atļauta' });
     }
 
     const scoreUrl = req.query?.scoreUrl;
@@ -165,28 +165,28 @@ module.exports = async function handler(req, res) {
 
     if (shouldProxyDownload && directMidiUrl) {
         if (!isMidiLikeUrl(directMidiUrl) || !isAllowedMidiHost(directMidiUrl)) {
-            return res.status(400).json({ error: 'Invalid midiUrl for download.' });
+            return res.status(400).json({ error: 'Nederīgs midiUrl lejupielādei.' });
         }
 
         try {
             return await streamMidiToClient(res, directMidiUrl);
         } catch (error) {
             return res.status(502).json({
-                error: 'Failed to fetch MIDI file from source URL.',
+                error: 'Neizdevās iegūt MIDI failu no avota URL.',
                 details: error.message,
             });
         }
     }
 
     if (!scoreUrl) {
-        return res.status(400).json({ error: 'Missing scoreUrl query parameter' });
+        return res.status(400).json({ error: 'Trūkst scoreUrl parametra' });
     }
 
     let normalizedScoreUrl;
     try {
         normalizedScoreUrl = normalizeScoreUrl(scoreUrl);
     } catch (err) {
-        return res.status(400).json({ error: 'Invalid scoreUrl' });
+        return res.status(400).json({ error: 'Nederīgs scoreUrl' });
     }
 
     if (!(await resolveExecutablePath()) && !process.env.BROWSER_WS_ENDPOINT) {
@@ -277,7 +277,7 @@ module.exports = async function handler(req, res) {
         if (!midiUrl) {
             if (sawAntiBotChallenge) {
                 return res.status(403).json({
-                    error: 'MuseScore anti-bot challenge blocked this request. Use a trusted remote browser via BROWSER_WS_ENDPOINT for public reliability.',
+                    error: 'MuseScore anti-bot pārbaude bloķēja šo pieprasījumu. Mēģini vēlreiz vēlāk.',
                     meta: {
                         browserMode: getBrowserMode(),
                         totalMs: Date.now() - requestStartedAt,
@@ -288,7 +288,7 @@ module.exports = async function handler(req, res) {
 
             if (timedOut) {
                 return res.status(504).json({
-                    error: 'Request timed out while scanning score resources. Please try again.',
+                    error: 'Pieprasījumam iestājās noilgums skenējot notu resursus. Lūdzu mēģini vēlreiz.',
                     meta: {
                         browserMode: getBrowserMode(),
                         totalMs: Date.now() - requestStartedAt,
@@ -298,7 +298,7 @@ module.exports = async function handler(req, res) {
             }
 
             return res.status(404).json({
-                error: 'Could not find a MIDI URL on this page. Some scores are protected by anti-bot pages or require interaction.',
+                error: 'Neizdevās atrast MIDI URL šajā lapā. Dažas notis ir aizsargātas vai prasa papildu mijiedarbību.',
                 meta: {
                     browserMode: getBrowserMode(),
                     totalMs: Date.now() - requestStartedAt,
@@ -322,7 +322,7 @@ module.exports = async function handler(req, res) {
         });
     } catch (error) {
         return res.status(500).json({
-            error: 'Failed to scrape MIDI URL',
+            error: 'Neizdevās iegūt MIDI URL',
             details: error.message,
         });
     } finally {
